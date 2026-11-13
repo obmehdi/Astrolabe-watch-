@@ -599,15 +599,23 @@ function wBuildSky(){const px=W.px,u=W.u,c=px/2,cv=W.sky=mk(px),g=cv.getContext(
  g.save();g.beginPath();g.arc(0,0,Rf,0,TAU);g.clip();g.textAlign='center';g.textBaseline='middle';g.font=`600 ${3.5*u}px "Segoe UI Symbol","Noto Sans Symbols","DejaVu Sans",sans-serif`;g.lineJoin='round';
  for(let i=0;i<12;i++){const p=ec(i*30+15);g.strokeStyle='rgba(2,10,45,.9)';g.lineWidth=1*u;g.strokeText(ZOD[i]+'︎',p[0],p[1]);g.fillStyle='#f4cf92';g.fillText(ZOD[i]+'︎',p[0],p[1])}
  g.restore();
- /* date band */
+ }
+
+/* month ring: its own layer (rings + ticks); month names are drawn each frame so they stay upright */
+function wBuildBand(){const px=W.px,u=W.u,c=px/2,cv=W.band=mk(px),g=cv.getContext('2d');g.translate(c,c);const Rf=WRf*u,Rb=WRb*u;
  ringP(g,Rb,Rf);let bgb=g.createRadialGradient(0,0,Rf,0,0,Rb);bgb.addColorStop(0,'#071440');bgb.addColorStop(1,'#030a26');g.fillStyle=bgb;g.fill('evenodd');
  g.strokeStyle=conic(g,.4,RGOLD,px/2);g.lineWidth=.55*u;g.beginPath();g.arc(0,0,Rf,0,TAU);g.stroke();
  const Y=new Date(S.t+S.tz*36e5).getUTCFullYear(),ML=[31,(Y%4==0&&Y%100!=0)||Y%400==0?29:28,31,30,31,30,31,31,30,31,30,31],rad=l=>mod(atan2(cos(EPS)*sin(l),cos(l)),360);
  for(let m=0;m<12;m++)for(let d=1;d<=ML[m];d++){const th=-rad(lamDay(Y,m,d))*D,len=(d==1?3.6:d%5==0?2.2:1.2)*u;g.strokeStyle=d==1?'#f4cf92':'rgba(235,225,205,.65)';g.lineWidth=(d==1?.42:.18)*u;g.beginPath();g.moveTo(Math.sin(th)*(Rf+.3*u),-Math.cos(th)*(Rf+.3*u));g.lineTo(Math.sin(th)*(Rf+.3*u+len),-Math.cos(th)*(Rf+.3*u+len));g.stroke()}
- g.textAlign='center';g.textBaseline='middle';g.font=wFont(2.6*u,600);if('letterSpacing'in g)g.letterSpacing=S.lang=='ar'?'0px':(.12*2.6*u)+'px';g.fillStyle='#ecd2ac';
- const MN=MNAMES();for(let m=0;m<12;m++){const thd=mod(-rad(lamDay(Y,m,15)),360),th=thd*D,r=(Rf+Rb)/2+1.7*u,nm=S.lang=='ar'?MN[m]:MN[m].toUpperCase();g.save();g.translate(Math.sin(th)*r,-Math.cos(th)*r);g.rotate(th+(thd>90&&thd<270?Math.PI:0));g.fillText(nm,0,0);g.restore()}
- if('letterSpacing'in g)g.letterSpacing='0px';
  g.strokeStyle=conic(g,1.4,RGOLD,px/2);g.lineWidth=.5*u;g.beginPath();g.arc(0,0,Rb-.2*u,0,TAU);g.stroke()}
+/* the month ring turns freely: today's date sits under the hand, so it follows the legal time */
+function wBand(g,sn){const u=W.u,c=W.px/2,Rf=WRf*u,Rb=WRb*u,d=new Date(S.t+S.tz*36e5),Y=d.getUTCFullYear(),
+  hrs=d.getUTCHours()+d.getUTCMinutes()/60+d.getUTCSeconds()/3600+d.getUTCMilliseconds()/36e5,a=(hrs-12)*15,
+  rad=l=>mod(atan2(cos(EPS)*sin(l),cos(l)),360),R=a+rad(sn.lam);
+ g.save();g.translate(c,c);g.rotate(R*D);g.drawImage(W.band,-c,-c);
+ g.textAlign='center';g.textBaseline='middle';g.font=wFont(2.6*u,600);if('letterSpacing'in g)g.letterSpacing=S.lang=='ar'?'0px':(.12*2.6*u)+'px';g.fillStyle='#ecd2ac';
+ const MN=MNAMES();for(let m=0;m<12;m++){const thd=mod(-rad(lamDay(Y,m,15)),360),th=thd*D,fin=mod(thd+R,360),r=(Rf+Rb)/2+1.7*u,nm=S.lang=='ar'?MN[m]:MN[m].toUpperCase();g.save();g.translate(Math.sin(th)*r,-Math.cos(th)*r);g.rotate(th+(fin>90&&fin<270?Math.PI:0));g.fillText(nm,0,0);g.restore()}
+ if('letterSpacing'in g)g.letterSpacing='0px';g.restore()}
 
 function wBuildOver(){const px=W.px,u=W.u,c=px/2,cv=W.over=mk(px),g=cv.getContext('2d');g.translate(c,c);const lat=wLat(),hz=wAlmu(0,lat),Rf=WRf*u;
  g.save();g.beginPath();g.arc(0,0,Rf,0,TAU);g.clip();
@@ -642,7 +650,7 @@ function wMoonCv(psi,th){const k=Math.round(psi*3)+'|'+Math.round(th/2);let c=W.
 function wEnsure(){const cv=$('wc');if(!cv)return false;const css=cv.getBoundingClientRect().width;if(css<60)return false;
  const dpr=Math.min(3,window.devicePixelRatio||1),px=Math.round(css*dpr);if(cv.width!==px){cv.width=cv.height=px}
  const Y=new Date(S.t+S.tz*36e5).getUTCFullYear(),kB=px,kS=px+'|'+S.lang+'|'+Y,kO=px+'|'+S.lang+'|'+S.lat.toFixed(2);
- if(W.kB!==kB||W.kS!==kS||W.kO!==kO){W.px=px;W.u=px/214;if(W.kB!==kB){wBuildBase();wBuildGlass();W.mc.clear()}if(W.kS!==kS||W.kB!==kB)wBuildSky();if(W.kO!==kO||W.kB!==kB)wBuildOver();W.kB=kB;W.kS=kS;W.kO=kO}
+ if(W.kB!==kB||W.kS!==kS||W.kO!==kO){W.px=px;W.u=px/214;if(W.kB!==kB){wBuildBase();wBuildGlass();W.mc.clear()}if(W.kS!==kS||W.kB!==kB){wBuildSky();wBuildBand()}if(W.kO!==kO||W.kB!==kB)wBuildOver();W.kB=kB;W.kS=kS;W.kO=kO}
  return true}
 function wLabels(g,lst){const u=W.u,c=W.px/2,a=lst*D,ca=Math.cos(a),sa=Math.sin(a),fs=2.7*u,placed=[],ar=S.lang=='ar';
  g.save();g.translate(c,c);g.beginPath();g.arc(0,0,(WRf-.4)*u,0,TAU);g.clip();g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';g.font=wFont(fs,600);
@@ -675,7 +683,7 @@ function wMarkers(g,lst,sn){const u=W.u,c=W.px/2,now=performance.now(),psi=moonP
 function wRender(){const cv=$('wc');if(!cv||!S.watch)return;if(S.tzAuto)S.tz=autoOffset(S.t);if(!wEnsure())return;
  const g=cv.getContext('2d'),u=W.u,c=W.px/2,lst=lstOf(S.t),sn=sun(S.t);
  g.clearRect(0,0,W.px,W.px);g.drawImage(W.base,0,0);
- g.save();g.translate(c,c);g.beginPath();g.arc(0,0,WRb*u,0,TAU);g.clip();g.rotate(lst*D);g.drawImage(W.sky,-c,-c);g.restore();
+ g.save();g.translate(c,c);g.beginPath();g.arc(0,0,WRb*u,0,TAU);g.clip();g.rotate(lst*D);g.drawImage(W.sky,-c,-c);g.restore();wBand(g,sn);
  wLabels(g,lst);g.drawImage(W.over,0,0);wHand(g);wMarkers(g,lst,sn);
  g.drawImage(W.glass,-tilt.x*2.2*u,-tilt.y*2.2*u)}
 
